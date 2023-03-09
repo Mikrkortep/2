@@ -1,80 +1,89 @@
-# 2
-Чтобы получить данные с SPI на STM32 с использованием SPI5, вам нужно выполнить следующие шаги:
+Для получения данных с гироскопа L3GD20H на плате STM32F429 по SPI5, необходимо выполнить следующие шаги:
 
-1. Настроить порт SPI. Вы можете использовать функцию CubeMX или настроить порт SPI вручную. Например, если вы используете STM32CubeIDE, для настройки порта SPI5 можно использовать следующий код:
+1. Настроить SPI5 на микроконтроллере STM32F429. Для этого нужно выбрать нужную комбинацию скорости передачи данных, режима обмена, битового порядка, подтверждения передачи и других параметров. 
+
+2. Подключить гироскоп L3GD20H к шине SPI5 и установить соответствующие настройки для управления устройством. 
+
+3. Написать программное обеспечение, которое будет осуществлять обмен данными между микроконтроллером и гироскопом по шине SPI. 
+
+4. Получить данные с гироскопа на микроконтроллере, преобразовать их в удобный формат и обработать согласно требованиям проекта.
+
+Пример кода на языке программирования C для получения данных с гироскопа L3GD20H на плате STM32F429 по SPI5:
 
 ```
-/* USER CODE BEGIN SPI5_MspInit 0 */
+#include "stm32f4xx.h"
 
-/* USER CODE END SPI5_MspInit 0 */
-/* SPI5 parameter configuration*/
-hspi5.Instance = SPI5;
-hspi5.Init.Mode = SPI_MODE_MASTER;
-hspi5.Init.Direction = SPI_DIRECTION_2LINES;
-hspi5.Init.DataSize = SPI_DATASIZE_8BIT;
-hspi5.Init.CLKPolarity = SPI_POLARITY_LOW;
-hspi5.Init.CLKPhase = SPI_PHASE_1EDGE;
-hspi5.Init.NSS = SPI_NSS_SOFT;
-hspi5.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-hspi5.Init.FirstBit = SPI_FIRSTBIT_MSB;
-hspi5.Init.TIMode = SPI_TIMODE_DISABLE;
-hspi5.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-hspi5.Init.CRCPolynomial = 10;
-if (HAL_SPI_Init(&hspi5) != HAL_OK)
+/* Настройка SPI5 */
+void SPI5_Init(void)
 {
-  Error_Handler();
+    SPI_InitTypeDef spiInitStruct;
+
+    /* Включение SPI5 */
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI5, ENABLE);
+
+    /* Настройка SPI5 */
+    spiInitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
+    spiInitStruct.SPI_CPHA = SPI_CPHA_1Edge;
+    spiInitStruct.SPI_CPOL = SPI_CPOL_Low;
+    spiInitStruct.SPI_CRCPolynomial = 7;
+    spiInitStruct.SPI_DataSize = SPI_DataSize_8b;
+    spiInitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
+    spiInitStruct.SPI_FirstBit = SPI_FirstBit_MSB;
+    spiInitStruct.SPI_Mode = SPI_Mode_Master;
+    spiInitStruct.SPI_NSS = SPI_NSS_Soft | SPI_NSSInternalSoft_Set;
+
+    SPI_Init(SPI5, &spiInitStruct);
+    SPI_Cmd(SPI5, ENABLE);
 }
 
-/* USER CODE BEGIN SPI5_MspInit 1 */
-
-/* USER CODE END SPI5_MspInit 1 */
-```
-
-2. Создать функцию для отправки данных через SPI. Например:
-
-```
-void SPI_SendData(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size)
+/* Чтение данных из регистра гироскопа */
+uint8_t L3GD20H_ReadReg(uint8_t regAddr)
 {
-    HAL_SPI_Transmit(hspi, pData, Size, 100);
+    uint8_t readData = 0;
+
+    /* Отправка адреса регистра для чтения */
+    while (!(SPI5->SR & SPI_I2S_FLAG_TXE));
+    SPI_I2S_SendData(SPI5, regAddr | 0x80);
+
+    /* Чтение данных из регистра */
+    while (!(SPI5->SR & SPI_I2S_FLAG_RXNE));
+    readData = SPI_I2S_ReceiveData(SPI5);
+
+    return readData;
+}
+
+/* Запись данных в регистр гироскопа */
+void L3GD20H_WriteReg(uint8_t regAddr, uint8_t writeData)
+{
+    /* Отправка адреса регистра для записи */
+    while (!(SPI5->SR & SPI_I2S_FLAG_TXE));
+    SPI_I2S_SendData(SPI5, regAddr & 0x7F);
+
+    /* Запись данных в регистр */
+    while (!(SPI5->SR & SPI_I2S_FLAG_TXE));
+    SPI_I2S_SendData(SPI5, writeData);
+}
+
+int main(void)
+{
+    /* Инициализация SPI5 */
+    SPI5_Init();
+
+    /* Включение гироскопа L3GD20H */
+    L3GD20H_WriteReg(0x20, 0x0F);
+
+    /* Чтение данных из регистра гироскопа */
+    uint8_t readData = L3GD20H_ReadReg(0x0F); 
+
+    while (1)
+    {
+        /* Основной код программы */
+    }
+
+    return 0;
 }
 ```
 
-3. Создать функцию для чтения данных из SPI. Например:
-
-```
-uint8_t SPI_ReadData(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size)
-{
-    HAL_SPI_Receive(hspi, pData, Size, 100);
-}
-```
-
-4. Отправить команду гироскопа L3GD20H для чтения данных с регистра. Например:
-
-```
-uint8_t L3GD20H_Read_Reg(uint8_t reg)
-{
-    uint8_t value;
-
-    HAL_GPIO_WritePin(SPI_CS_GPIO_Port, SPI_CS_Pin, GPIO_PIN_RESET); // низкий уровень на CS для выбора устройства
-
-    uint8_t TxData[2] = {reg | 0x80, 0x00}; // отправляем адрес регистра, с битом чтения
-    uint8_t RxData[2] = {0xFF, 0xFF};
-
-    HAL_SPI_TransmitReceive(&hspi5, TxData, RxData, 2, 100); // отправляем данные по SPI, ожидаем 100 мс
-
-    value = RxData[1]; // значение, полученное из регистра
-
-    HAL_GPIO_WritePin(SPI_CS_GPIO_Port, SPI_CS_Pin, GPIO_PIN_SET); // высокий уровень на CS для снятия выделения с устройства
-
-    return value;
-}
-```
-
-5. Прочитать данные с гироскопа L3GD20H. Например:
-
-```
-uint16_t L3GD20H_Read_X_L()
-{
-    uint8_t tx_data[2] = {L3GD20H
+В этом примере инициализируется шина SPI5, устанавливается соответствующая конфигурация для гироскопа L3GD20H и выполнение обмена данными.
 
 Для сброса диалога введите команду /context
