@@ -54,3 +54,54 @@ export default App;
 Таким образом, мы можем легко преобразовать JSON-файл в HTML-разметку с помощью React.
 
 Для сброса диалога введите команду /context
+
+
+
+
+из JSON-файла со вложенными элементами:
+
+import React, { useState, useEffect } from 'react';
+import data from './data.json';
+
+function App() {
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    setProducts(data);
+  }, []);
+
+  const renderNestedElements = (element) => {
+    if (Array.isArray(element)) {
+      return element.map((el, index) => {
+        return <div key={index}>{renderNestedElements(el)}</div>;
+      });
+    } else if (typeof element === 'object') {
+      return Object.keys(element).map((property, index) => {
+        return (
+          <div key={index}>
+            <strong>{property}: </strong>
+            {renderNestedElements(element[property])}
+          </div>
+        );
+      });
+    } else {
+      return element;
+    }
+  };
+
+  return (
+    <div>
+      {products.map((product) => (
+        <div key={product.id}>
+          <h2>{product.name}</h2>
+          <p>{product.price}</p>
+          <div>{renderNestedElements(product.description)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default App;
+
+Для сброса диалога введите команду /context
