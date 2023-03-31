@@ -59,7 +59,7 @@ export default App;
 
 
 из JSON-файла со вложенными элементами:
-
+'''
 import React, { useState, useEffect } from 'react';
 import data from './data.json';
 
@@ -103,5 +103,5 @@ function App() {
 }
 
 export default App;
-
+'''
 Для сброса диалога введите команду /context
