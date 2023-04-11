@@ -1,48 +1,23 @@
-Для того чтобы отобразить данный компонент на странице в localhost, нужно добавить несколько строк кода. Сначала мы должны импортировать ReactDOM из библиотеки React, а затем добавить строку кода, которая вызывает функцию ReactDOM.render() для отображения компонента App на странице.
+Вы можете использовать метод EndInvoke для получения результата возращаемого методом BeginInvoke. В вашем случае он не нужен, так как BeginInvoke не возвращает результат. Однако, если вы хотите узнать, завершена ли операция, вы можете создать делегат AsyncCallback и передать его в метод BeginInvoke. В этом случае делегат будет вызван по завершении операции и вы можете выполнять дополнительные действия, например, обновить состояние пользовательского интерфейса. 
 
-Вот измененный код:
+Например, таким образом можно очистить список и изменить заголовок формы:
 
-index.js:
+```
+// создаем делегат AsyncCallback
+AsyncCallback callback = delegate(IAsyncResult asyncResult)
+{
+    // метод EndInvoke закончит выполнение начатой операции
+    ListDataCom.EndInvoke(asyncResult);
+    // код который выполнится после завершения операции
+    this.Invoke((MethodInvoker)delegate
+    {
+        ListDataCom.Items.Clear();
+        this.Text = "Данные очищены";
+    });
+};
 
-```javascript
-import React from 'react';
-import ReactDOM from 'react-dom';
-import App from './App';
-
-ReactDOM.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-  document.getElementById('root')
-);
+// запускаем операцию в отдельном потоке
+ListDataCom.BeginInvoke(callback);
 ```
 
-App.js:
-
-```javascript
-import React, { useState, useEffect } from 'react';
-import data from './data.json';
-
-function App() {
-  const [products, setProducts] = useState([]);
-
-  useEffect(() => {
-    setProducts(data);
-  }, []);
-
-  return (
-    <div>
-      {products.map(product => (
-        <div key={product.id}>
-          <h2>{product.name}</h2>
-          <p>{product.price}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export default App;
-```
-
-Теперь мы можем запустить приложение, используя `npm start`, и открыть его на странице в `localhost`. Создайте новый проект React, добавьте вышеуказанные строки кода в соответствующие файлы и запустите приложение, используя команду `npm start` в терминале. Страница приложения должна открыться автоматически в браузере под адресом `localhost:3000`.
+Для сброса диалога введите команду /context
