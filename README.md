@@ -1,47 +1,78 @@
-Вы можете использовать метод EndInvoke для получения результата возращаемого методом BeginInvoke. В вашем случае он не нужен, так как BeginInvoke не возвращает результат. Однако, если вы хотите узнать, завершена ли операция, вы можете создать делегат AsyncCallback и передать его в метод BeginInvoke. В этом случае делегат будет вызван по завершении операции и вы можете выполнять дополнительные действия, например, обновить состояние пользовательского интерфейса. 
+Для передачи "hello" по canaerospace на stm32f4 через can2 можно использовать следующий код:
 
-Например, таким образом можно очистить список и изменить заголовок формы:
+```c
+#include "stm32f4xx.h"
 
-```
-// создаем делегат AsyncCallback
-AsyncCallback callback = delegate(IAsyncResult asyncResult)
-{
-    // метод EndInvoke закончит выполнение начатой операции
-    ListDataCom.EndInvoke(asyncResult);
-    // код который выполнится после завершения операции
-    this.Invoke((MethodInvoker)delegate
-    {
-        ListDataCom.Items.Clear();
-        this.Text = "Данные очищены";
-    });
-};
+#define CAN_MSG_ID      0x42      // идентификатор сообщения
+#define CAN_MSG_LENGTH  5         // длина сообщения
 
-// запускаем операцию в отдельном потоке
-ListDataCom.BeginInvoke(callback);
-```
+int main(void) {
+    // Настройка RCC
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1 | RCC_APB1Periph_CAN2, ENABLE);
 
-Для сброса диалога введите команду /context
+    // Настройка GPIO
+    GPIO_InitTypeDef gpio;
+    gpio.GPIO_Pin = GPIO_Pin_12 | GPIO_Pin_13;   // CAN2_TX и CAN2_RX
+    gpio.GPIO_Speed = GPIO_Speed_50MHz;
+    gpio.GPIO_Mode = GPIO_Mode_AF;
+    gpio.GPIO_OType = GPIO_OType_PP;
+    gpio.GPIO_PuPd = GPIO_PuPd_UP;
+    GPIO_Init(GPIOB, &gpio);
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource12, GPIO_AF_CAN2);
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource13, GPIO_AF_CAN2);
 
-Чтобы вызвать метод очистки и заполнения ListBox в новом потоке, можно использовать класс `Task` из пространства имен System.Threading.Tasks. Не забудьте, что при обновлении элементов управления в другом потоке нужно использовать метод `Invoke` или `BeginInvoke` контроля, на котором происходят обновления.
+    // Настройка CAN2
+    CAN_InitTypeDef can;
+    can.CAN_TTCM = DISABLE;
+    can.CAN_ABOM = DISABLE;
+    can.CAN_AWUM = DISABLE;
+    can.CAN_NART = DISABLE;
+    can.CAN_RFLM = DISABLE;
+    can.CAN_TXFP = ENABLE;
+    can.CAN_Mode = CAN_Mode_Normal;
+    can.CAN_SJW = CAN_SJW_1tq;
+    can.CAN_BS1 = CAN_BS1_6tq;
+    can.CAN_BS2 = CAN_BS2_3tq;
+    can.CAN_Prescaler = 4;
+    CAN_Init(CAN2, &can);
 
-Пример:
+    // Настройка фильтра
+    CAN_FilterInitTypeDef filter;
+    filter.CAN_FilterNumber = 0;
+    filter.CAN_FilterMode = CAN_FilterMode_IdMask;
+    filter.CAN_FilterScale = CAN_FilterScale_32bit;
+    filter.CAN_FilterIdHigh = 0x0000;
+    filter.CAN_FilterIdLow = 0x0000;
+    filter.CAN_FilterMaskIdHigh = 0x0000;
+    filter.CAN_FilterMaskIdLow = 0x0000;
+    filter.CAN_FilterFIFOAssignment = CAN_Filter_FIFO0;
+    filter.CAN_FilterActivation = ENABLE;
+    CAN_FilterInit(&filter);
 
-```
-private void button1_Click(object sender, EventArgs e)
-{
-    // Запустить новый поток, в котором производятся обновления ListBox
-    Task.Run(() =>
-    {
-        // Очистить ListBox
-        Invoke((Action)(() => listBox1.Items.Clear()));
+    // Отправка сообщения
+    CAN_TxMsgTypeDef msg;
+    msg.StdId = CAN_MSG_ID;
+    msg.ExtId = 0;
+    msg.RTR = CAN_RTR_DATA;
+    msg.IDE = CAN_ID_STD;
+    msg.DLC = CAN_MSG_LENGTH;
+    msg.Data[0] = 'h';
+    msg.Data[1] = 'e';
+    msg.Data[2] = 'l';
+    msg.Data[3] = 'l';
+    msg.Data[4] = 'o';
+    while (CAN_Transmit(CAN2, &msg) == CAN_TxStatus_NoMailBox);
 
-        // Заполнить ListBox новыми значениями
-        string[] newValues = { "Первый элемент", "Второй элемент", "Третий элемент" };
-        Invoke((Action)(() => listBox1.Items.AddRange(newValues)));
-    });
+    while(1);
 }
 ```
 
-В данном примере мы запускаем новый поток с помощью метода `Task.Run()`, который принимает делегат с кодом для выполнения в потоке. В этом делегате мы вызываем методы для очистки и заполнения ListBox, используя метод `Invoke` для обновления элемента управления в главном потоке.
+Здесь:
+
+- Настроены GPIO для CAN2_TX и CAN2_RX на пинах PB12 и PB13 соответственно.
+- Настроен CAN2 в режиме с 11-битными идентификаторами сообщений, скоростью 125 кбит/с и коэффициентом разделения равным 4.
+- Настроен фильтр для принятия всех сообщений.
+- Отправлено сообщение с идентификатором CAN_MSG_ID и данными "hello".
 
 Для сброса диалога введите команду /context
