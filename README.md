@@ -1,78 +1,85 @@
-Для передачи "hello" по canaerospace на stm32f4 через can2 можно использовать следующий код:
+<Window x:Class="WpfApplication1.MainWindow"
 
-```c
-#include "stm32f4xx.h"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 
-#define CAN_MSG_ID      0x42      // идентификатор сообщения
-#define CAN_MSG_LENGTH  5         // длина сообщения
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 
-int main(void) {
-    // Настройка RCC
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1 | RCC_APB1Periph_CAN2, ENABLE);
+    Title="MainWindow">
 
-    // Настройка GPIO
-    GPIO_InitTypeDef gpio;
-    gpio.GPIO_Pin = GPIO_Pin_12 | GPIO_Pin_13;   // CAN2_TX и CAN2_RX
-    gpio.GPIO_Speed = GPIO_Speed_50MHz;
-    gpio.GPIO_Mode = GPIO_Mode_AF;
-    gpio.GPIO_OType = GPIO_OType_PP;
-    gpio.GPIO_PuPd = GPIO_PuPd_UP;
-    GPIO_Init(GPIOB, &gpio);
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource12, GPIO_AF_CAN2);
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource13, GPIO_AF_CAN2);
+    <Grid>
 
-    // Настройка CAN2
-    CAN_InitTypeDef can;
-    can.CAN_TTCM = DISABLE;
-    can.CAN_ABOM = DISABLE;
-    can.CAN_AWUM = DISABLE;
-    can.CAN_NART = DISABLE;
-    can.CAN_RFLM = DISABLE;
-    can.CAN_TXFP = ENABLE;
-    can.CAN_Mode = CAN_Mode_Normal;
-    can.CAN_SJW = CAN_SJW_1tq;
-    can.CAN_BS1 = CAN_BS1_6tq;
-    can.CAN_BS2 = CAN_BS2_3tq;
-    can.CAN_Prescaler = 4;
-    CAN_Init(CAN2, &can);
+        <Viewport3D>
 
-    // Настройка фильтра
-    CAN_FilterInitTypeDef filter;
-    filter.CAN_FilterNumber = 0;
-    filter.CAN_FilterMode = CAN_FilterMode_IdMask;
-    filter.CAN_FilterScale = CAN_FilterScale_32bit;
-    filter.CAN_FilterIdHigh = 0x0000;
-    filter.CAN_FilterIdLow = 0x0000;
-    filter.CAN_FilterMaskIdHigh = 0x0000;
-    filter.CAN_FilterMaskIdLow = 0x0000;
-    filter.CAN_FilterFIFOAssignment = CAN_Filter_FIFO0;
-    filter.CAN_FilterActivation = ENABLE;
-    CAN_FilterInit(&filter);
+            <Viewport3D.Camera>
 
-    // Отправка сообщения
-    CAN_TxMsgTypeDef msg;
-    msg.StdId = CAN_MSG_ID;
-    msg.ExtId = 0;
-    msg.RTR = CAN_RTR_DATA;
-    msg.IDE = CAN_ID_STD;
-    msg.DLC = CAN_MSG_LENGTH;
-    msg.Data[0] = 'h';
-    msg.Data[1] = 'e';
-    msg.Data[2] = 'l';
-    msg.Data[3] = 'l';
-    msg.Data[4] = 'o';
-    while (CAN_Transmit(CAN2, &msg) == CAN_TxStatus_NoMailBox);
+                <PerspectiveCamera Position="0,0,5"/>
 
-    while(1);
-}
-```
+            </Viewport3D.Camera>
 
-Здесь:
+            <ModelVisual3D>
 
-- Настроены GPIO для CAN2_TX и CAN2_RX на пинах PB12 и PB13 соответственно.
-- Настроен CAN2 в режиме с 11-битными идентификаторами сообщений, скоростью 125 кбит/с и коэффициентом разделения равным 4.
-- Настроен фильтр для принятия всех сообщений.
-- Отправлено сообщение с идентификатором CAN_MSG_ID и данными "hello".
+                <ModelVisual3D.Content>
 
-Для сброса диалога введите команду /context
+                    <GeometryModel3D>
+
+                        <GeometryModel3D.Geometry>
+
+                            <MeshGeometry3D Positions="-1,-0.5,-0.05 1,-0.5,-0.05 1,0.5,-0.05 -1,0.5,-0.05 -1,-0.5,0.05 1,-0.5,0.05 1,0.5,0.05 -1,0.5,0.05"
+
+                                            TriangleIndices="0 1 2 2 3 0 1 5 6 6 2 1 5 4 7 7 6 5 4 0 3 3 7 4 3 2 6 6 7 3 4 5 1 1 0 4"
+
+                                            TextureCoordinates="0,0 1,0 1,1 0,1 0,0 1,0 1,1 0,1"/>
+
+                        </GeometryModel3D.Geometry>
+
+                        <GeometryModel3D.Material>
+
+                            <DiffuseMaterial>
+
+                                <DiffuseMaterial.Brush>
+
+                                    <SolidColorBrush Color="White"/>
+
+                                </DiffuseMaterial.Brush>
+
+                            </DiffuseMaterial>
+
+                        </GeometryModel3D.Material>
+
+                    </GeometryModel3D>
+
+                </ModelVisual3D.Content>
+
+                <ModelVisual3D.Transform>
+
+                    <ScaleTransform3D ScaleX="2" ScaleY="1" ScaleZ="0.1"/>
+
+                </ModelVisual3D.Transform>
+
+            </ModelVisual3D>
+
+            <ModelVisual3D>
+
+                <ModelVisual3D.Content>
+
+                    <AmbientLight Color="#666666"/>
+
+                </ModelVisual3D.Content>
+
+            </ModelVisual3D>
+
+            <ModelVisual3D>
+
+                <ModelVisual3D.Content>
+
+                    <DirectionalLight Color="White" Direction="-1,-1,-1"/>
+
+                </ModelVisual3D.Content>
+
+            </ModelVisual3D>
+
+        </Viewport3D>
+
+    </Grid>
+
+</Window>
