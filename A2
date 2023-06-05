@@ -1,0 +1,81 @@
+Для считывания данных с CAN регистров на STM32F4 можно использовать следующий алгоритм:
+
+1. Настроить CAN контроллер на приём сообщений с нужных фильтров и масок, используя регистры CAN_FMR, CAN_FM1R, CAN_FS1R, CAN_FFA1R, CAN_FA1R и CAN_F0R1-28.
+
+2. Разрешить прерывания для CAN контроллера, используя регистр CAN_IER.
+
+3. Создать функцию-обработчик прерывания для CAN, которая будет считывать данные из приёмного буфера, используя регистры CAN_RFRx и CAN_RIx. В этой функции можно также обрабатывать ошибки CAN, используя регистры CAN_ESR и CAN_ERRx.
+
+4. В основной программе будет вызываться функция получения данных, в которой можно считывать данные из глобальных переменных, заполненных в функции-обработчике прерывания.
+
+Пример кода для считывания данных с CAN регистров на STM32F4:
+
+```
+#include "stm32f4xx.h"
+
+// Глобальные переменные для хранения принятых данных
+uint8_t can_rx_data[8];
+uint32_t can_rx_id;
+
+// Функция настройки CAN
+void can_init(void)
+{
+    // Включить тактирование CAN контроллера
+    RCC->APB1ENR |= RCC_APB1ENR_CAN1EN;
+
+    // Настройка пинов для CAN
+    // ...
+
+    // Режим инициализации CAN
+    CAN1->MCR |= CAN_MCR_INRQ;
+
+    // Настройка битрейта и других параметров CAN
+    // ...
+
+    // Режим работы CAN
+    CAN1->MCR &= ~CAN_MCR_INRQ;
+
+    // Настройка фильтров и масок для приёма сообщений
+    // ...
+
+    // Разрешение прерываний на приём сообщений
+    CAN1->IER |= CAN_IER_FMPIE0;
+    NVIC_EnableIRQ(CAN1_RX0_IRQn);
+}
+
+// Функция получения данных с CAN
+void can_receive_data(void)
+{
+    // Копирование принятых данных в локальные переменные
+    uint8_t data[8];
+    uint32_t id;
+    __disable_irq();
+    for (int i = 0; i < 8; i++) {
+        data[i] = can_rx_data[i];
+    }
+    id = can_rx_id;
+    __enable_irq();
+    // Обработка принятых данных
+    // ...
+}
+
+// Обработчик прерывания на приём сообщений
+void CAN1_RX0_IRQHandler(void)
+{
+    // Получение ID и данных из приёмного буфера
+    can_rx_id = CAN1->sFIFOMailBox[0].RIR >> 21;  // ID
+    can_rx_data[0] = (uint8_t)(CAN1->sFIFOMailBox[0].RDLR);  // Байт 1
+    can_rx_data[1] = (uint8_t)(CAN1->sFIFOMailBox[0].RDLR >> 8);  // Байт 2
+    can_rx_data[2] = (uint8_t)(CAN1->sFIFOMailBox[0].RDLR >> 16);  // Байт 3
+    can_rx_data[3] = (uint8_t)(CAN1->sFIFOMailBox[0].RDLR >> 24);  // Байт 4
+    can_rx_data[4] = (uint8_t)(CAN1->sFIFOMailBox[0].RDHR);  // Байт 5
+    can_rx_data[5] = (uint8_t)(CAN1->sFIFOMailBox[0].RDHR >> 8);  // Байт 6
+    can_rx_data[6] = (uint8_t)(CAN1->sFIFOMailBox[0].RDHR >> 16);  // Байт 7
+    can_rx_data[7] = (uint8_t)(CAN1->sFIFOMailBox[0].RDHR >> 24);  // Байт 8
+
+    // Сброс флага прерывания
+    CAN1->RF0R |= CAN_RF0R_RFOM0;
+}
+```
+
+Для сброса диалога введите команду /context
