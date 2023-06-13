@@ -1,0 +1,103 @@
+Ниже приведен пример кода на WPF, который создаст отдельный поток при запуске приложения и в потоке создаст канвас, который со временем будет менять цвет:
+
+```csharp
+
+using System.Threading;
+
+using System.Windows;
+
+using System.Windows.Controls;
+
+using System.Windows.Media;
+
+namespace CanvasColorChanger
+
+{
+
+    public partial class MainWindow : Window
+
+    {
+
+        public MainWindow()
+
+        {
+
+            InitializeComponent();
+
+            // Создаем новый поток
+
+            Thread thread = new Thread(new ThreadStart(WorkerThread));
+
+            // Запускаем поток
+
+            thread.Start();
+
+        }
+
+        // Метод для работы в отдельном потоке
+
+        private void WorkerThread()
+
+        {
+
+            // Создаем канвас
+
+            Canvas canvas = new Canvas();
+
+            // Устанавливаем размеры канваса
+
+            canvas.Width = 300;
+
+            canvas.Height = 300;
+
+            // Добавляем канвас на окно приложения
+
+            Application.Current.Dispatcher.Invoke(() =>
+
+            {
+
+                mainGrid.Children.Add(canvas);
+
+                Grid.SetColumn(canvas, 1);
+
+            });
+
+            // Бесконечный цикл для изменения цвета канваса со временем
+
+            while (true)
+
+            {
+
+                // Генерируем случайный цвет RGB
+
+                SolidColorBrush brush = new SolidColorBrush(Color.FromRgb((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256)));
+
+                // Устанавливаем цвет канваса
+
+                Application.Current.Dispatcher.Invoke(() =>
+
+                {
+
+                    canvas.Background = brush;
+
+                });
+
+                // Приостанавливаем поток на 1 секунду
+
+                Thread.Sleep(1000);
+
+            }
+
+        }
+
+        // Объект для генерации случайных чисел
+
+        private readonly Random random = new Random();
+
+    }
+
+}
+
+```
+
+Для сброса диалога введите команду /context
