@@ -1,0 +1,94 @@
+Для написания приложения на STM32F429, генерирующего синусоиду на DAC_CHANNEL_1, нужно использовать библиотеку CMSIS и HAL (Hardware Abstraction Layer). Вот пример кода, который реализует требуемую функциональность:
+
+```c
+#include "stm32f4xx.h"
+#include "stm32f4xx_hal.h"
+
+#define DAC_MAX_VALUE 4095  // Максимальное значение, которое может принять ЦАП
+
+// Задаем табличное значение для генерации синусоиды
+const uint16_t sinTable[] = {
+    2047, 2447, 2831, 3185, 3495, 3750, 3941, 4060,
+    4095, 4060, 3941, 3750, 3495, 3185, 2831, 2447,
+    2047, 1647, 1263,  909,  599,  344,  153,   34,
+       0,   34,  153,  344,  599,  909, 1263, 1647
+};
+
+void DAC_Init(void)
+{
+    DAC_ChannelConfTypeDef sConfig;
+
+    __HAL_RCC_DAC_CLK_ENABLE();  // Включаем тактирование ЦАП
+
+    // Инициализируем настройки ЦАП
+    sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
+    sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+
+    // Инициализируем ЦАП и выбираем канал
+    if(HAL_DAC_Init(&hdac) != HAL_OK)
+    {
+        // Обработка ошибки инициализации
+        while(1);
+    }
+    if(HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1) != HAL_OK)
+    {
+        // Обработка ошибки конфигурации канала
+        while(1);
+    }
+}
+
+void DAC_Start(void)
+{
+    HAL_DAC_Start(&hdac, DAC_CHANNEL_1);  // Запускаем ЦАП
+}
+
+void DAC_Stop(void)
+{
+    HAL_DAC_Stop(&hdac, DAC_CHANNEL_1);  // Останавливаем ЦАП
+}
+
+void DAC_SetValue(uint16_t value)
+{
+    HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, value);  // Устанавливаем значение ЦАП
+}
+
+void SysTick_Handler(void)
+{
+    static uint8_t index = 0;
+    
+    DAC_SetValue(sinTable[index]);  // Задаем значение ЦАП из табличного значения синусоиды
+    index++;
+    if(index >= sizeof(sinTable) / sizeof(sinTable[0]))
+    {
+        index = 0;
+    }
+}
+
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+
+    // Инициализируем ЦАП
+    DAC_Init();
+    
+    // Инициализируем системный таймер
+    if(SysTick_Config(SystemCoreClock / 1000))
+    {
+        // Обработка ошибки инициализации таймера
+        while(1);
+    }
+    
+    // Запускаем ЦАП
+    DAC_Start();
+    
+    while(1)
+    {
+        // Основной цикл программы
+    }
+}
+```
+
+В этом примере мы инициализируем и запускаем ЦАП на DAC_CHANNEL_1, а затем используем системный таймер для обновления значения ЦАП согласно табличному значению синусоиды.
+
+Для сброса диалога введите команду /context
